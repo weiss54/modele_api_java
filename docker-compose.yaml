@@ -1,0 +1,109 @@
+services:
+
+  db-compte:
+    image: postgres
+    user: postgres
+    secrets:
+      - db-compte-password
+    environment:
+        - POSTGRES_DB=compte
+        - POSTGRES_PASSWORD_FILE=/run/secrets/db-compte-password
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+        - trd
+
+  db-gateway:
+    image: postgres
+    user: postgres
+    secrets:
+      - db-gateway-password
+    environment:
+      - POSTGRES_DB=gateway
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db-gateway-password
+    expose:
+      - 5432
+    healthcheck:
+      test: [ "CMD", "pg_isready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - trd
+
+  db-paris:
+    image: postgres
+    user: postgres
+    secrets:
+      - db-paris-password
+    environment:
+      - POSTGRES_DB=paris
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db-paris-password
+    #expose:
+    #  - 5432
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - trd
+
+  compte:
+    build: ./compte
+    develop:
+      watch:
+        - action: rebuild
+          path: ./compte
+          target: /app
+    ports:
+      - "7080:8080"
+    networks:
+        - trd
+
+  paris:
+    build: ./paris
+    develop:
+      watch:
+        - action: rebuild
+          path: ./paris
+          target: /app
+    ports:
+      - "8080:8080"
+    networks:
+      - trd
+
+  gateway:
+    build: ./gateway
+    develop:
+      watch:
+        - action: rebuild
+          path: ./gateway
+          target: /app
+    ports:
+      - "9090:8080"
+    networks:
+      - trd
+
+volumes:
+  db-compte-data:
+  db-paris-data:
+
+secrets:
+  db-compte-password:
+    file: ./secrets/db-compte-password
+  db-paris-password:
+    file: ./secrets/db-paris-password
+  db-gateway-password:
+    file: ./secrets/db-gateway-password
+
+networks:
+  trd:
+    driver: bridge
